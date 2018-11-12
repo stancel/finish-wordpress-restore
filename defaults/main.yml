@@ -47,7 +47,7 @@ finish_wordpress_restore_web_user: "www-data"
 finish_wordpress_restore_web_group: "www-data"
 
 # Is this a "new", "upgrade" or "restore" installation? "new" and "upgrade" installs install files from Git, "restore" skips any git deployments and expect a later role to restore files to the needed directory.
-finish_wordpress_restore_installation_type: "new"
+finish_wordpress_restore_installation_type: "restore"
 
 # Is this instance to be used for a "dev", "qa" or "prod" environment? Only "prod" environments will deploy any needed cron jobs or schedulers.
 finish_wordpress_restore_environment_type: "prod"

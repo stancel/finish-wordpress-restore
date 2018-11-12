@@ -25,6 +25,4 @@ galaxy_info:
     - bedrock
     - php
 
-dependencies: 
-  - sbaerlocher.wp-cli
-  - stancel.git_download_wordpress
+dependencies: []

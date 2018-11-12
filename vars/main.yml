@@ -7,6 +7,11 @@ finish_wordpress_restore_fqdn_of_old_wp_site: "oldsite.com"
 # URL of the NEW website restoring from (without http:// or https://)
 finish_wordpress_restore_fqdn_of_new_wp_site: "newsite.com"
 
+# The DB user to create when to be used by the application
+finish_wordpress_restore_db_user: "wordpressDbUser"
+
+# The password for the DB user being created
+finish_wordpress_restore_db_password: "some-really-secure-password"
 
 #####     Optional Variables      #####
 

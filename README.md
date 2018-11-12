@@ -88,8 +88,7 @@ Is this instance to be used for a "dev", "qa" or "prod" environment? Only "prod"
 Dependencies
 ------------
 
-- stancel.git_download_wordpress
-- sbaerlocher.wp-cli
+None
 
 Example Playbook
 ----------------
