@@ -77,17 +77,16 @@
 ##  End - Handle any template files and schedulers/cron jobs
 
 
-
-
 ##  Update values in the database
 
-- name: "Run the WP CLI package, dotenv, to generate salts and keys for WP Bedrock .env file"
+- name: "Run the WP search-replace program to update all old site/url references in the database"
   command: wp search-replace '//{{ finish_wordpress_restore_fqdn_of_old_wp_site }}' '//{{ finish_wordpress_restore_fqdn_of_new_wp_site }}' --allow-root --all-tables
   args: 
     chdir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
   when: (finish_wordpress_restore_installation_type == "restore") 
 
 ##  End - Update values in the database
+
 
 ##  Trigger any application / site specific deployment tasks (if not handled elsewhere)
 
@@ -97,8 +96,7 @@
     working_dir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
 #  become: yes
 #  become_user: "{{ finish_wordpress_restore_web_user }}"
-  when: (finish_wordpress_restore_installation_type == "new" or finish_wordpress_restore_installation_type == "upgrade") 
-          and (finish_wordpress_restore_use_bedrock == true)
+  when: (finish_wordpress_restore_installation_type == "restore") and (finish_wordpress_restore_use_bedrock == true)
 
 ##  End - Trigger any application / site specific deployment tasks
 
@@ -159,3 +157,4 @@
   notify: "restart webserver"
 
 ##  End - Set proper permissions for web application / site
+
