@@ -1,0 +1,161 @@
+---
+# tasks file for finish-wordpress-restore
+
+- name: "Block for Standard version of WordPress - the default"
+  block:
+
+    - name: "Copying over .htaccess to Apache webserver"
+      template:
+        src: 'htaccess.j2'
+        dest: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/.htaccess"
+        owner: "{{ finish_wordpress_restore_web_user }}"
+        group: "{{ finish_wordpress_restore_web_group }}"
+        mode: 0644
+      when: (finish_wordpress_restore_installation_type == "restore") and ("'apache2' in services")
+
+    - name: "Fetch random salts for WordPress config"
+      local_action: command curl https://api.wordpress.org/secret-key/1.1/salt/
+      register: "wp_salt"
+      become: no
+      become_method: sudo
+
+    - name: "Copying over wp-config.php to server"
+      template:
+        src: 'wp-config.php.j2'
+        dest: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/wp-config.php"
+        owner: "{{ finish_wordpress_restore_web_user }}"
+        group: "{{ finish_wordpress_restore_web_group }}"
+        mode: 0644
+      when: (finish_wordpress_restore_installation_type == "restore") 
+
+    - name: "Copying over check_wordpress_updates.php script to server - used with Nagios to see if updates are needed"
+      template:
+        src: 'check_wordpress_updates.php.j2'
+        dest: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/check_wordpress_updates.php"
+        owner: "{{ finish_wordpress_restore_web_user }}"
+        group: "{{ finish_wordpress_restore_web_group }}"
+        mode: 0644
+      when: (finish_wordpress_restore_installation_type == "restore") 
+
+  when: finish_wordpress_restore_use_bedrock == false
+
+- name: "Block for Bedrock version of WordPress"
+  block:
+
+    - name: "Copying over .env to server"
+      template:
+        src: 'env.j2'
+        dest: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/.env"
+        owner: "{{ finish_wordpress_restore_web_user }}"
+        group: "{{ finish_wordpress_restore_web_group }}"
+        mode: 0644
+      when: (finish_wordpress_restore_installation_type == "restore") 
+
+    - name: "Install the aaemnnosttv/wp-cli-dotenv-command package"
+      command: wp package install aaemnnosttv/wp-cli-dotenv-command --allow-root
+      args: 
+        chdir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
+      when: (finish_wordpress_restore_installation_type == "restore") 
+
+    - name: "Run the WP CLI package, dotenv, to generate salts and keys for WP Bedrock .env file"
+      command: wp dotenv salts regenerate --allow-root
+      args: 
+        chdir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
+      when: (finish_wordpress_restore_installation_type == "restore") 
+
+    - name: "Copying over check_wordpress_updates.php script to server - used with Nagios to see if updates are needed"
+      template:
+        src: 'check_wordpress_updates.php.j2'
+        dest: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/web/check_wordpress_updates.php"
+        owner: "{{ finish_wordpress_restore_web_user }}"
+        group: "{{ finish_wordpress_restore_web_group }}"
+        mode: 0644
+      when: (finish_wordpress_restore_installation_type == "restore")  
+
+  when: finish_wordpress_restore_use_bedrock
+
+##  End - Handle any template files and schedulers/cron jobs
+
+
+
+
+##  Update values in the database
+
+- name: "Run the WP CLI package, dotenv, to generate salts and keys for WP Bedrock .env file"
+  command: wp search-replace '//{{ finish_wordpress_restore_fqdn_of_old_wp_site }}' '//{{ finish_wordpress_restore_fqdn_of_new_wp_site }}' --allow-root --all-tables
+  args: 
+    chdir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
+  when: (finish_wordpress_restore_installation_type == "restore") 
+
+##  End - Update values in the database
+
+##  Trigger any application / site specific deployment tasks (if not handled elsewhere)
+
+- name: "Install Composer packages"
+  composer: 
+    command: install
+    working_dir: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
+#  become: yes
+#  become_user: "{{ finish_wordpress_restore_web_user }}"
+  when: (finish_wordpress_restore_installation_type == "new" or finish_wordpress_restore_installation_type == "upgrade") 
+          and (finish_wordpress_restore_use_bedrock == true)
+
+##  End - Trigger any application / site specific deployment tasks
+
+
+##  Set proper permissions for web application / site
+
+- name: "Setting ownership and permissions for web directory - make sure all new files and directories inherit the group of the webserver"
+  file:
+    path: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}"
+    state: directory
+    owner: "{{ finish_wordpress_restore_web_user }}"
+    group: "{{ finish_wordpress_restore_web_group }}"
+    mode: g+s
+    recurse: yes
+#  when: (finish_wordpress_restore_installation_type == "new" or finish_wordpress_restore_installation_type == "upgrade")
+
+- name: "Ensure directories are 0755"
+  command: find {{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }} -type d -exec chmod -c 0755 {} \;
+  register: chmod_result
+  changed_when: "chmod_result.stdout != \"\""
+
+- name: "Ensure files are 0644"
+  command: find {{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }} -type f -exec chmod -c 0644 {} \;
+  register: chmod_result
+  changed_when: "chmod_result.stdout != \"\""
+
+# These next two tasks should be covered above but leaving them in right now for good measure
+- name: "Set user and group ownership for all existing files and directories"
+  command: chown -R {{ finish_wordpress_restore_web_user }}:{{ finish_wordpress_restore_web_group }} {{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}
+  register: chmod_result
+  changed_when: "chmod_result.stdout != \"\""
+
+- name: "Ensure newly created directories and files have a group of {{ finish_wordpress_restore_web_group }}"
+  command: find {{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }} -type d -exec chmod g+s {} \;
+  register: chmod_result
+  changed_when: "chmod_result.stdout != \"\""
+
+- name: "Removing Git folder from web server permissions"
+  file:
+    path: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/.git"
+    state: directory
+    owner: root
+    group: root
+    mode: 0640
+    recurse: yes
+  when: (finish_wordpress_restore_installation_type == "new" or finish_wordpress_restore_installation_type == "upgrade")
+  ignore_errors: true
+
+- name: "Removing .gitignore from web server permissions"
+  file:
+    path: "{{ finish_wordpress_restore_web_files_path }}{{ finish_wordpress_restore_web_directory_for_application }}/.gitignore"
+    state: file
+    owner: root
+    group: root
+    mode: 0640
+  when: (finish_wordpress_restore_installation_type == "new" or finish_wordpress_restore_installation_type == "upgrade")
+  ignore_errors: true
+  notify: "restart webserver"
+
+##  End - Set proper permissions for web application / site

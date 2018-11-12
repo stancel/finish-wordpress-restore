@@ -1,0 +1,126 @@
+finish_wordpress_restore
+=========
+
+Ansible role that completes the needed changes/updates to in the config files and database so that everything works properly after being restored to a new host/domain/environment.
+
+Requirements
+------------
+
+Must have WP-CLI installed on the server you are running this against and already have the WordPress files and database restored and in place before running this role to finalize everything.
+
+Role Variables
+--------------
+
+URL of the OLD website restoring from (without http:// or https://)
+```
+	finish_wordpress_restore_fqdn_of_old_wp_site: "oldsite.com"
+```
+URL of the NEW website restoring from (without http:// or https://)
+```
+	finish_wordpress_restore_fqdn_of_new_wp_site: "newsite.com"
+```
+Boolean as to whether to use standard Wordpress (default) or Bedrock WP (https://roots.io/bedrock/)
+```
+	finish_wordpress_restore_use_bedrock: false
+```
+Is this installation on a shared server?
+```
+	finish_wordpress_restore_using_shared_server: false
+```
+URL of the website. Not required or used unless using WP Bedrock
+```
+	finish_wordpress_restore_wp_home: "https://{{ finish_wordpress_restore_fqdn_of_new_wp_site }}"
+```
+The database to create when setting up the application
+```
+	finish_wordpress_restore_db_name: "wordpress"
+```
+The default database character set / encoding that will be use
+```
+	finish_wordpress_restore_db_encoding: "utf8mb4"
+```
+The default database collation that will be use
+```
+	finish_wordpress_restore_db_collation: "utf8mb4_unicode_ci"
+```
+The fqdn or IP address of where the application database will be connecting to. Default is 'localhost'
+```
+	finish_wordpress_restore_db_host: "localhost"
+```
+Hostname of Nagios server that is allowed to interact with the check_wordpress_updates.php script?
+```
+	finish_wordpress_restore_update_check_script_nagios_server_fqdn: "{{ lookup('env', 'NAGIOS_SERVER_FQDN') }}"
+```
+Disable All Updates. By default automatic updates are enabled, set this value to true to disable all automatic updates
+```
+	finish_wordpress_restore_auto_update_disable: false
+```
+Define Core Update Level
+true  = Development, minor, and major updates are all enabled
+false = Development, minor, and major updates are all disabled
+minor = Minor updates are enabled, development, and major updates are disabled
+For development sites, the default value of WP_AUTO_UPDATE_CORE is true. For other sites sites, the default value of WP_AUTO_UPDATE_CORE is minor.
+```
+	finish_wordpress_restore_core_update_level: 'minor'
+```
+The Document Root or file path where the files will be stored and served up by your webserver. The default path is "/var/www/html" and assumes you are running Apache2 on Debian or Ubuntu
+```
+	finish_wordpress_restore_web_files_path: "/var/www"
+	finish_wordpress_restore_web_directory_for_application: "/html"
+```
+The linux username used by your webserver. The default value is "www-data" which assumes Apache is used on a Debian or Ubuntu linux
+```
+	finish_wordpress_restore_web_user: "www-data"
+```
+The linux group used by your webserver. The default value is "www-data" which assumes Apache is used on a Debian or Ubuntu linux
+```
+	finish_wordpress_restore_web_group: "www-data"
+```
+Is this a "new", "upgrade" or "restore" installation? "new" and "upgrade" installs install files from Git, "restore" skips any git deployments and expect a later role to restore files to the needed directory.
+```
+	finish_wordpress_restore_installation_type: "new"
+```
+Is this instance to be used for a "dev", "qa" or "prod" environment? Only "prod" environments will deploy any needed cron jobs or schedulers.
+```
+	finish_wordpress_restore_environment_type: "prod"
+```
+
+Dependencies
+------------
+
+- stancel.git_download_wordpress
+- sbaerlocher.wp-cli
+
+Example Playbook
+----------------
+
+Copy and edit *defaults/main.yml* to your *vars/main.yml*
+
+	- hosts: your_webserver
+	  vars_files:
+	    - vars/main.yml
+	  roles:
+	    - stancel.finish_wordpress_restore
+
+
+or just pass the variables in the playbook
+
+
+	- hosts: your_webserver 
+	  vars:
+	    finish_wordpress_restore_fqdn_of_old_wp_site: "oldsite.com"
+	    finish_wordpress_restore_fqdn_of_new_wp_site: "newsite.com"
+	  roles:
+	    - stancel.finish_wordpress_restore
+
+License
+-------
+
+GPLv3
+
+Author Information
+------------------
+
+[Brad Stancel](https://github.com/stancel) 
+
+
